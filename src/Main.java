@@ -3,13 +3,22 @@ import java.awt.event.*;
 import java.io.*;
 import javax.swing.*;
 import javax.swing.text.*;
+import java.util.HashSet;
+import java.util.Set;
+
 
 class myTextEditor extends JFrame {
     private JTextArea textArea = new JTextArea(50, 150);
+    private Document doc = textArea.getDocument();
+    private int fontSize = 14;
+    private int fontDelta = 2;
     private JFileChooser fileDialog = new JFileChooser(System.getProperty("user.dir"));
     private String curFile = "Untitled";
     private boolean hasChanged = false;
+    private boolean cmdPressed = false;
+
     private KeyListener listener = new KeyListener() {
+        private final Set<Integer> pressed = new HashSet<Integer>();
         @Override
         public void keyTyped(KeyEvent e) {
 
@@ -17,36 +26,92 @@ class myTextEditor extends JFrame {
 
         @Override
         public void keyPressed(KeyEvent e) {
+            /* Key KeyCode
+               cmd 157
+               -    45
+               +    61
+               o    79
+               s    83 */
             hasChanged = true;
             Save.setEnabled(true);
             SaveAs.setEnabled(true);
+            pressed.add(e.getKeyCode());
+
+            if (e.getKeyCode() == 157) {
+                    cmdPressed = true;
+            }
+
+            // two key combo press containing cmd
+            if (pressed.size() == 2 && pressed.contains(157)) {
+                clearLastKey();
+                // s
+                if (pressed.contains(83)) {
+                    genericSave();
+                }
+                // o
+                if (pressed.contains(79)) {
+                    openFile();
+                }
+                // +
+                if (pressed.contains(61)) {
+                    changeFontSize(fontDelta);
+                }
+                // -
+                if (pressed.contains(45)) {
+                    changeFontSize(-fontDelta);
+                }
+
+            }
+            // repeated (+ OR -) while cmd is held down
+            else if (cmdPressed) {
+                // +
+                if (pressed.contains(61)) {
+                    clearLastKey();
+                    changeFontSize(fontDelta);
+                }
+                // -
+                if (pressed.contains(45)) {
+                    clearLastKey();
+                    changeFontSize(-fontDelta);
+                }
+            }
         }
 
         @Override
         public void keyReleased(KeyEvent e) {
-
+            if (e.getKeyCode() == 157) {
+                cmdPressed = false;
+            }
+            pressed.clear();
         }
     };
+
+
+    // KeyListener Helpers
+    private void clearLastKey() {
+        try {
+            // clear the key pressed last
+            doc.remove(doc.getLength() - 1, 0);
+        }
+        catch (BadLocationException ex) {
+        }
+    }
+    private void changeFontSize(int delta) {
+        fontSize += delta;
+        textArea.setFont(new Font("Monospaced", Font.PLAIN, fontSize));
+    }
+
     // Actions
     Action Open = new AbstractAction("Open") {
         @Override
         public void actionPerformed(ActionEvent e) {
-            saveOld();
-            if (fileDialog.showOpenDialog(null)==JFileChooser.APPROVE_OPTION) {
-                readInFile(fileDialog.getSelectedFile().getAbsolutePath());
-            }
-            SaveAs.setEnabled(true);
+            openFile();
         }
     };
     Action Save = new AbstractAction("Save") {
         @Override
         public void actionPerformed(ActionEvent e) {
-            if(!curFile.equals("Untitled")) {
-                saveFile(curFile);
-            }
-            else {
-                saveFileAs();
-            }
+            genericSave();
         }
     };
     Action SaveAs = new AbstractAction("Save as...") {
@@ -80,9 +145,20 @@ class myTextEditor extends JFrame {
     Action Copy = actionMap.get(DefaultEditorKit.copyAction);
     Action Paste = actionMap.get(DefaultEditorKit.pasteAction);
 
+    private void genericSave() {
+        if(!curFile.equals("Untitled")) {
+            saveFile(curFile);
+        }
+        else {
+            saveFileAs();
+        }
+    }
+
     private void saveFileAs() {
         if(fileDialog.showSaveDialog(null)==JFileChooser.APPROVE_OPTION) {
             saveFile(fileDialog.getSelectedFile().getAbsolutePath());
+            curFile = fileDialog.getSelectedFile().getAbsolutePath();
+            this.setTitle(curFile);
         }
     }
 
@@ -93,6 +169,14 @@ class myTextEditor extends JFrame {
                 saveFile(curFile);
             }
         }
+    }
+
+    private void openFile() {
+        saveOld();
+        if (fileDialog.showOpenDialog(null)==JFileChooser.APPROVE_OPTION) {
+            readInFile(fileDialog.getSelectedFile().getAbsolutePath());
+        }
+        SaveAs.setEnabled(true);
     }
 
     private void readInFile(String fileName) {
@@ -174,7 +258,8 @@ class myTextEditor extends JFrame {
 
     public myTextEditor() {
         // font
-        textArea.setFont(new Font("Monospaced", Font.PLAIN, 14));
+        textArea.setFont(new Font("Monospaced", Font.PLAIN, fontSize));
+        textArea.setBackground(new Color(144, 195, 212));
         // wrap those words dude
         textArea.setLineWrap(true);
         // scroll bars
