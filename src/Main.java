@@ -111,7 +111,7 @@ class myTextEditor extends JFrame {
     Action Save = new AbstractAction("Save") {
         @Override
         public void actionPerformed(ActionEvent e) {
-            genericSave();
+            saveFile(curFile);
         }
     };
     Action SaveAs = new AbstractAction("Save as...") {
@@ -146,7 +146,8 @@ class myTextEditor extends JFrame {
     Action Paste = actionMap.get(DefaultEditorKit.pasteAction);
 
     private void genericSave() {
-        if(!curFile.equals("Untitled")) {
+        File f = new File(curFile);
+        if(hasChanged == true && f.exists() && !f.isDirectory()) {
             saveFile(curFile);
         }
         else {
@@ -237,7 +238,7 @@ class myTextEditor extends JFrame {
                             JOptionPane.YES_NO_OPTION);
 
                     if (confirmed == JOptionPane.YES_OPTION) {
-                        if (curFile == "Untitled") {
+                        if (curFile == "Untitled" && hasChanged == false) {
                             saveFileAs();
                         }
                         else {
