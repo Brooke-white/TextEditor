@@ -102,32 +102,32 @@ class myTextEditor extends JFrame {
     }
 
     // Actions
-    Action Open = new AbstractAction("Open") {
+    private Action Open = new AbstractAction("Open") {
         @Override
         public void actionPerformed(ActionEvent e) {
             openFile();
         }
     };
-    Action Save = new AbstractAction("Save") {
+    private Action Save = new AbstractAction("Save") {
         @Override
         public void actionPerformed(ActionEvent e) {
             saveFile(curFile);
         }
     };
-    Action SaveAs = new AbstractAction("Save as...") {
+    private Action SaveAs = new AbstractAction("Save as...") {
         @Override
         public void actionPerformed(ActionEvent e) {
             saveFileAs();
         }
     };
-    Action Quit = new AbstractAction("Quit") {
+    private Action Quit = new AbstractAction("Quit") {
         @Override
         public void actionPerformed(ActionEvent e) {
             saveOld();
             System.exit(0);
         }
     };
-    Action New = new AbstractAction("New") {
+    private Action New = new AbstractAction("New") {
         @Override
         public void actionPerformed(ActionEvent e) {
             saveOld();
@@ -140,14 +140,14 @@ class myTextEditor extends JFrame {
         }
     };
 
-    ActionMap actionMap = textArea.getActionMap();
-    Action Cut = actionMap.get(DefaultEditorKit.cutAction);
-    Action Copy = actionMap.get(DefaultEditorKit.copyAction);
-    Action Paste = actionMap.get(DefaultEditorKit.pasteAction);
+    private ActionMap actionMap = textArea.getActionMap();
+    private Action Cut = actionMap.get(DefaultEditorKit.cutAction);
+    private Action Copy = actionMap.get(DefaultEditorKit.copyAction);
+    private Action Paste = actionMap.get(DefaultEditorKit.pasteAction);
 
     private void genericSave() {
         File f = new File(curFile);
-        if(hasChanged == true && f.exists() && !f.isDirectory()) {
+        if(hasChanged && f.exists() && !f.isDirectory()) {
             saveFile(curFile);
         }
         else {
@@ -173,7 +173,9 @@ class myTextEditor extends JFrame {
     }
 
     private void openFile() {
-        saveOld();
+        if (hasChanged) {
+            saveOld();
+        }
         if (fileDialog.showOpenDialog(null)==JFileChooser.APPROVE_OPTION) {
             readInFile(fileDialog.getSelectedFile().getAbsolutePath());
         }
@@ -187,7 +189,6 @@ class myTextEditor extends JFrame {
             textArea.read(reader, null);
             curFile = fileName;
             setTitle(curFile);
-            hasChanged = true;
         }
         catch (IOException e) {
             Toolkit.getDefaultToolkit().beep();
@@ -206,24 +207,23 @@ class myTextEditor extends JFrame {
     }
 
     private void saveFile(String fileName) {
-        FileWriter writer = null;
+        if (hasChanged) {
+            FileWriter writer = null;
 
-        try {
-            writer = new FileWriter(fileName);
-            textArea.write(writer);
-            curFile = fileName;
-            hasChanged = false;
-            Save.setEnabled(false);
-        }
-        catch (IOException e) {
-        }
-        finally {
-            if (writer != null) {
-                try {
-                    writer.close();
-                }
-                catch (IOException e) {
+            try {
+                writer = new FileWriter(fileName);
+                textArea.write(writer);
+                curFile = fileName;
+                hasChanged = false;
+                Save.setEnabled(false);
+            } catch (IOException e) {
+            } finally {
+                if (writer != null) {
+                    try {
+                        writer.close();
+                    } catch (IOException e) {
 
+                    }
                 }
             }
         }
@@ -238,7 +238,7 @@ class myTextEditor extends JFrame {
                             JOptionPane.YES_NO_OPTION);
 
                     if (confirmed == JOptionPane.YES_OPTION) {
-                        if (curFile == "Untitled" && hasChanged == false) {
+                        if (curFile == "Untitled" && !hasChanged) {
                             saveFileAs();
                         }
                         else {
